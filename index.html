@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpecVision - Premium Eyewear Store</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app"></div>
+
+    <script>
+        // Storage helper
+        const storage = {
+            get: function(key) {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : null;
+            },
+            set: function(key, value) {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        };
+
+        // Initial products data
+        const initialProducts = [
+            {
+                id: 1,
+                name: 'Classic Aviator',
+                brand: 'RayVision',
+                category: 'sunglasses',
+                type: 'Full Rim',
+                price: 149.99,
+                originalPrice: 199.99,
+                image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&h=400&fit=crop',
+                rating: 4.5,
+                reviews: 234,
+                colors: ['Black', 'Gold', 'Silver'],
+                material: 'Metal',
+                warranty: '1 Year',
+                features: ['UV Protection', 'Polarized', 'Anti-Glare']
+            },
+            {
+                id: 2,
+                name: 'Modern Wayfarer',
+                brand: 'StyleFrame',
+                category: 'eyeglasses',
+                type: 'Full Rim',
+                price: 89.99,
+                originalPrice: 129.99,
+                image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=400&h=400&fit=crop',
+                rating: 4.7,
+                reviews: 456,
+                colors: ['Black', 'Tortoise', 'Blue'],
+                material: 'Acetate',
+                warranty: '1 Year',
+                features: ['Blue Light Filter', 'Lightweight', 'Flexible']
+            },
+            {
+                id: 3,
+                name: 'Round Vintage',
+                brand: 'RetroSpec',
+                category: 'eyeglasses',
+                type: 'Full Rim',
+                price: 79.99,
+                originalPrice: 99.99,
+                image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=400&h=400&fit=crop',
+                rating: 4.3,
+                reviews: 189,
+                colors: ['Gold', 'Silver', 'Rose Gold'],
+                material: 'Metal',
+                warranty: '1 Year',
+                features: ['Vintage Design', 'Lightweight', 'Premium Finish']
+            },
+            {
+                id: 4,
+                name: 'Sport Shield',
+                brand: 'ActiveVision',
+                category: 'sunglasses',
+                type: 'Rimless',
+                price: 129.99,
+                originalPrice: 179.99,
+                image: 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=400&h=400&fit=crop',
+                rating: 4.8,
+                reviews: 567,
+                colors: ['Black', 'Blue', 'Red'],
+                material: 'TR90',
+                warranty: '2 Years',
+                features: ['Sports Design', 'Shatterproof', 'Anti-Slip']
+            },
+            {
+                id: 5,
+                name: 'Cat Eye Fashion',
+                brand: 'GlamourEyes',
+                category: 'eyeglasses',
+                type: 'Full Rim',
+                price: 99.99,
+                originalPrice: 139.99,
+                image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=400&h=400&fit=crop',
+                rating: 4.6,
+                reviews: 312,
+                colors: ['Pink', 'Black', 'Tortoise'],
+                material: 'Acetate',
+                warranty: '1 Year',
+                features: ['Fashion Forward', 'Comfortable', 'Stylish']
+            },
+            {
+                id: 6,
+                name: 'Pilot Pro',
+                brand: 'RayVision',
+                category: 'sunglasses',
+                type: 'Full Rim',
+                price: 159.99,
+                originalPrice: 219.99,
+                image: 'https://images.unsplash.com/photo-1583408797745-532da7222bbb?w=400&h=400&fit=crop',
+                rating: 4.9,
+                reviews: 789,
+                colors: ['Black', 'Silver', 'Bronze'],
+                material: 'Titanium',
+                warranty: '2 Years',
+                features: ['Polarized', 'Premium Quality', 'Scratch Resistant']
+            },
+            {
+                id: 7,
+                name: 'Rectangle Classic',
+                brand: 'ProfessionalSpec',
+                category: 'eyeglasses',
+                type: 'Full Rim',
+                price: 69.99,
+                originalPrice: 89.99,
+                image: 'https://images.unsplash.com/photo-1622445275576-721325763afe?w=400&h=400&fit=crop',
+                rating: 4.4,
+                reviews: 223,
+                colors: ['Black', 'Brown', 'Grey'],
+                material: 'Plastic',
+                warranty: '1 Year',
+                features: ['Professional Look', 'Durable', 'Affordable']
+            },
+            {
+                id: 8,
+                name: 'Oversized Glam',
+                brand: 'FashionVue',
+                category: 'sunglasses',
+                type: 'Full Rim',
+                price: 119.99,
+                originalPrice: 169.99,
+                image: 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=400&h=400&fit=crop',
+                rating: 4.5,
+                reviews: 445,
+                colors: ['Black', 'Leopard', 'Red'],
+                material: 'Acetate',
+                warranty: '1 Year',
+                features: ['Fashion Statement', 'UV400', 'Large Frame']
+            }
+        ];
+
+        // App State
+        let state = {
+            products: storage.get('products') || initialProducts,
+            cart: storage.get('cart') || [],
+            wishlist: storage.get('wishlist') || [],
+            showCart: false,
+            showMenu: false,
+            showFilters: false,
+            searchTerm: '',
+            selectedCategory: 'all',
+            priceRange: 'all',
+            selectedBrand: 'all',
+            currentView: 'home'
+        };
+
+        const categories = [
+            { id: 'all', name: 'All Products', icon: '👓' },
+            { id: 'eyeglasses', name: 'Eyeglasses', icon: '👓' },
+            { id: 'sunglasses', name: 'Sunglasses', icon: '🕶️' }
+        ];
+
+        const brands = ['all', 'RayVision', 'StyleFrame', 'RetroSpec', 'ActiveVision', 'GlamourEyes', 'ProfessionalSpec', 'FashionVue'];
+
+        // Helper functions
+        function saveToStorage(key, data) {
+            storage.set(key, data);
+        }
+
+        function addToCart(product) {
+            const existing = state.cart.find(item => item.id === product.id);
+            if (existing) {
+                state.cart = state.cart.map(item =>
+                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                );
+            } else {
+                state.cart = [...state.cart, { ...product, quantity: 1 }];
+            }
+            saveToStorage('cart', state.cart);
+            render();
+        }
+
+        function updateQuantity(id, change) {
+            state.cart = state.cart.map(item => {
+                if (item.id === id) {
+                    const newQuantity = item.quantity + change;
+                    return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
+                }
+                return item;
+            }).filter(Boolean);
+            saveToStorage('cart', state.cart);
+            render();
+        }
+
+        function removeFromCart(id) {
+            state.cart = state.cart.filter(item => item.id !== id);
+            saveToStorage('cart', state.cart);
+            render();
+        }
+
+        function toggleWishlist(productId) {
+            if (state.wishlist.includes(productId)) {
+                state.wishlist = state.wishlist.filter(id => id !== productId);
+            } else {
+                state.wishlist = [...state.wishlist, productId];
+            }
+            saveToStorage('wishlist', state.wishlist);
+            render();
+        }
+
+        function getFilteredProducts() {
+            return state.products.filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+                                    product.brand.toLowerCase().includes(state.searchTerm.toLowerCase());
+                const matchesCategory = state.selectedCategory === 'all' || product.category === state.selectedCategory;
+                const matchesBrand = state.selectedBrand === 'all' || product.brand === state.selectedBrand;
+                
+                let matchesPrice = true;
+                if (state.priceRange === 'under50') matchesPrice = product.price < 50;
+                else if (state.priceRange === '50-100') matchesPrice = product.price >= 50 && product.price < 100;
+                else if (state.priceRange === '100-150') matchesPrice = product.price >= 100 && product.price < 150;
+                else if (state.priceRange === 'over150') matchesPrice = product.price >= 150;
+                
+                return matchesSearch && matchesCategory && matchesBrand && matchesPrice;
+            });
+        }
+
+        function getTotalPrice() {
+            return state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        }
+
+        function getDiscount(original, current) {
+            return Math.round(((original - current) / original) * 100);
+        }
+
+        // SVG Icons
+        const icons = {
+            menu: '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>',
+            x: '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
+            search: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>',
+            user: '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+            cart: '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+            heart: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            heartFilled: '<svg width="20" height="20" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            star: '<svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>',
+            filter: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>',
+            plus: '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+            minus: '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+            trash: '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
+            truck: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>',
+            shield: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
+            award: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>'
+        };
+
+        // Render function
+        function render() {
+            const filteredProducts = getFilteredProducts();
+            const totalPrice = getTotalPrice();
+
+            const html = `
+                <!-- Header -->
+                <header class="bg-white shadow-md sticky top-0 z-50">
+                    <div class="bg-purple-700 text-white py-2 text-center text-sm">
+                        🎉 Year End Sale - Up to 40% OFF on all frames! 
+                    </div>
+                    <div class="max-w-7xl mx-auto px-4 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <button onclick="toggleMenu()" class="lg:hidden p-2 hover:bg-gray-100 rounded">
+                                    ${state.showMenu ? icons.x : icons.menu}
+                                </button>
+                                <h1 class="text-2xl md:text-3xl font-bold text-purple-700">👓 SpecVision</h1>
+                            </div>
+
+                            <nav class="hidden lg:flex space-x-8">
+                                <button onclick="setView('home')" class="${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                    Home
+                                </button>
+                                <button onclick="setCategory('eyeglasses')" class="${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                    Eyeglasses
+                                </button>
+                                <button onclick="setCategory('sunglasses')" class="${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                    Sunglasses
+                                </button>
+                                <button class="text-gray-600 hover:text-purple-700">Contact Lenses</button>
+                            </nav>
+
+                            <div class="flex items-center space-x-2 md:space-x-4">
+                                <div class="relative hidden md:block">
+                                    <input type="text" placeholder="Search frames..." value="${state.searchTerm}" 
+                                        oninput="setSearch(event.target.value)"
+                                        class="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-600 w-64">
+                                    <div class="absolute left-3 top-2.5 text-gray-400">${icons.search}</div>
+                                </div>
+                                
+                                <button class="p-2 hover:bg-gray-100 rounded-full relative">
+                                    ${icons.user}
+                                </button>
+
+                                <button onclick="toggleWishlistView()" class="p-2 hover:bg-gray-100 rounded-full relative">
+                                    ${state.wishlist.length > 0 ? icons.heartFilled.replace('currentColor', '#ef4444') : icons.heart}
+                                    ${state.wishlist.length > 0 ? `
+                                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                            ${state.wishlist.length}
+                                        </span>
+                                    ` : ''}
+                                </button>
+                                
+                                <button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-full relative">
+                                    ${icons.cart}
+                                    ${state.cart.length > 0 ? `
+                                        <span class="absolute -top-1 -right-1 bg-purple-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                            ${state.cart.length}
+                                        </span>
+                                    ` : ''}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Search -->
+                        <div class="mt-4 md:hidden">
+                            <div class="relative">
+                                <input type="text" placeholder="Search frames..." value="${state.searchTerm}"
+                                    oninput="setSearch(event.target.value)"
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-600">
+                                <div class="absolute left-3 top-2.5 text-gray-400">${icons.search}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Menu -->
+                    ${state.showMenu ? `
+                        <div class="lg:hidden bg-white border-t">
+                            <nav class="flex flex-col p-4 space-y-2">
+                                <button onclick="setView('home'); toggleMenu()" class="text-left py-2 ${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Home</button>
+                                <button onclick="setCategory('eyeglasses'); toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Eyeglasses</button>
+                                <button onclick="setCategory('sunglasses'); toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Sunglasses</button>
+                                <button class="text-left py-2 text-gray-600">Contact Lenses</button>
+                            </nav>
+                        </div>
+                    ` : ''}
+                </header>
+
+                <!-- Hero Section -->
+                <div class="gradient-bg text-white py-16 md:py-24">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="grid md:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h2 class="text-4xl md:text-6xl font-bold mb-4">See Life Clearly</h2>
+                                <p class="text-xl md:text-2xl mb-6">Premium eyewear starting at $69.99</p>
+                                <p class="text-lg mb-8">Free home trial • 1 Year Warranty • Free shipping</p>
+                                <button onclick="scrollToProducts()" class="bg-white text-purple-700 px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-100 transition">
+                                    Shop Now
+                                </button>
+                            </div>
+                            <div class="hidden md:block">
+                                <img src="https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=600&h=400&fit=crop" 
+                                    alt="Eyeglasses" class="rounded-lg shadow-2xl">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features -->
+                <div class="bg-white py-12 border-b">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                            <div>
+                                <div class="text-purple-700 mb-2 flex justify-center">${icons.truck}</div>
+                                <h3 class="font-semibold mb-1">Free Shipping</h3>
+                                <p class="text-sm text-gray-600">On all orders</p>
+                            </div>
+                            <div>
+                                <div class="text-purple-700 mb-2 flex justify-center">${icons.shield}</div>
+                                <h3 class="font-semibold mb-1">1 Year Warranty</h3>
+                                <p class="text-sm text-gray-600">Full protection</p>
+                            </div>
+                            <div>
+                                <div class="text-purple-700 mb-2 flex justify-center">${icons.award}</div>
+                                <h3 class="font-semibold mb-1">Premium Quality</h3>
+                                <p class="text-sm text-gray-600">Certified frames</p>
+                            </div>
+                            <div>
+                                <div class="text-purple-700 mb-2 flex justify-center">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                                </div>
+                                <h3 class="font-semibold mb-1">Home Trial</h3>
+                                <p class="text-sm text-gray-600">Try before buy</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters & Products -->
+                <div class="max-w-7xl mx-auto px-4 py-8" id="products-section">
+                    <!-- Filter Bar -->
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+                        <div class="flex flex-wrap items-center gap-4">
+                            <button onclick="toggleFilters()" class="flex items-center space-x-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                                <span>${icons.filter}</span>
+                                <span>Filters</span>
+                            </button>
+
+                            <select onchange="setCategory(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                                <option value="all" ${state.selectedCategory === 'all' ? 'selected' : ''}>All Types</option>
+                                <option value="eyeglasses" ${state.selectedCategory === 'eyeglasses' ? 'selected' : ''}>Eyeglasses</option>
+                                <option value="sunglasses" ${state.selectedCategory === 'sunglasses' ? 'selected' : ''}>Sunglasses</option>
+                            </select>
+
+                            <select onchange="setBrand(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                                ${brands.map(brand => `
+                                    <option value="${brand}" ${state.selectedBrand === brand ? 'selected' : ''}>
+                                        ${brand === 'all' ? 'All Brands' : brand}
+                                    </option>
+                                `).join('')}
+                            </select>
+
+                            <select onchange="setPriceRange(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                                <option value="all" ${state.priceRange === 'all' ? 'selected' : ''}>All Prices</option>
+                                <option value="under50" ${state.priceRange === 'under50' ? 'selected' : ''}>Under $50</option>
+                                <option value="50-100" ${state.priceRange === '50-100' ? 'selected' : ''}>$50 - $100</option>
+                                <option value="100-150" ${state.priceRange === '100-150' ? 'selected' : ''}>$100 - $150</option>
+                                <option value="over150" ${state.priceRange === 'over150' ? 'selected' : ''}>Over $150</option>
+                            </select>
+
+                            <div class="ml-auto text-gray-600">
+                                ${filteredProducts.length} Products Found
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        ${filteredProducts.map(product => `
+                            <div class="product-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer">
+                                <div class="relative">
+                                    <img src="${product.image}" alt="${product.name}" class="w-full h-56 object-cover">
+                                    ${product.originalPrice > product.price ? `
+                                        <div class="badge absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                            ${getDiscount(product.originalPrice, product.price)}% OFF
+                                        </div>
+                                    ` : ''}
+                                    <button onclick="toggleWishlist(${product.id})" 
+                                        class="absolute top-2 right-2 p-2 bg-white rounded-full hover:bg-gray-100 shadow-md">
+                                        <div class="${state.wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-600'}">
+                                            ${state.wishlist.includes(product.id) ? icons.heartFilled : icons.heart}
+                                        </div>
+                                    </button>
+                                </div>
+                                
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-semibold text-purple-700 uppercase">${product.brand}</span>
+                                        <div class="flex items-center text-yellow-500">
+                                            ${icons.star}
+                                            <span class="text-xs text-gray-600 ml-1">${product.rating} (${product.reviews})</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <h3 class="font-bold text-lg mb-1">${product.name}</h3>
+                                    <p class="text-xs text-gray-600 mb-2">${product.type} • ${product.material}</p>
+                                    
+                                    <div class="flex items-center space-x-2 mb-3">
+                                        ${product.colors.slice(0, 3).map(color => `
+                                            <div class="w-5 h-5 rounded-full border-2 border-gray-300" 
+                                                style="background: ${color.toLowerCase()};" 
+                                                title="${color}">
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div>
+                                            <span class="text-2xl font-bold text-purple-700">$${product.price.toFixed(2)}</span>
+                                            ${product.originalPrice > product.price ? `
+                                                <span class="text-sm text-gray-500 line-through ml-2">$${product.originalPrice.toFixed(2)}</span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <button onclick='addToCart(${JSON.stringify(product).replace(/'/g, "&#39;")})' 
+                                        class="w-full bg-purple-700 text-white py-2 rounded-lg hover:bg-purple-800 transition font-semibold">
+                                        Add to Cart
+                                    </button>
+                                    
+                                    <div class="mt-2 text-xs text-gray-600 text-center">
+                                        ${product.features[0]} • ${product.warranty}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Cart Sidebar -->
+                ${state.showCart ? `
+                    <div class="fixed inset-0 bg-black bg-opacity-50 z-50" onclick="toggleCart()">
+                        <div class="absolute right-0 top-0 h-full w-full md:w-96 bg-white shadow-xl overflow-y-auto" onclick="event.stopPropagation()">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h2 class="text-2xl font-bold">Shopping Cart</h2>
+                                    <button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-full">
+                                        ${icons.x}
+                                    </button>
+                                </div>
+
+                                ${state.cart.length === 0 ? `
+                                    <div class="text-center py-12">
+                                        <div class="text-gray-400 mb-4">${icons.cart}</div>
+                                        <p class="text-gray-500">Your cart is empty</p>
+                                        <button onclick="toggleCart()" class="mt-4 text-purple-700 font-semibold">Continue Shopping</button>
+                                    </div>
+                                ` : `
+                                    <div class="space-y-4 mb-6">
+                                        ${state.cart.map(item => `
+                                            <div class="flex space-x-4 border-b pb-4">
+                                                <img src="${item.image}" alt="${item.name}" class="w-24 h-24 object-cover rounded">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold">${item.name}</h4>
+                                                    <p class="text-sm text-gray-600">${item.brand}</p>
+                                                    <p class="text-purple-700 font-bold mt-1">$${item.price.toFixed(2)}</p>
+                                                    <div class="flex items-center space-x-2 mt-2">
+                                                        <button onclick="updateQuantity(${item.id}, -1)" 
+                                                            class="p-1 bg-gray-200 rounded hover:bg-gray-300">
+                                                            ${icons.minus}
+                                                        </button>
+                                                        <span class="font-semibold w-8 text-center">${item.quantity}</span>
+                                                        <button onclick="updateQuantity(${item.id}, 1)" 
+                                                            class="p-1 bg-gray-200 rounded hover:bg-gray-300">
+                                                            ${icons.plus}
+                                                        </button>
+                                                        <button onclick="removeFromCart(${item.id})" 
+                                                            class="ml-auto p-1 text-red-500 hover:bg-red-50 rounded">
+                                                            ${icons.trash}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+
+                                    <div class="border-t pt-4 space-y-3">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Subtotal:</span>
+                                            <span class="font-semibold">$${totalPrice.toFixed(2)}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Shipping:</span>
+                                            <span class="font-semibold text-green-600">FREE</span>
+                                        </div>
+                                        <div class="flex justify-between items-center border-t pt-3">
+                                            <span class="text-lg font-semibold">Total:</span>
+                                            <span class="text-2xl font-bold text-purple-700">$${totalPrice.toFixed(2)}</span>
+                                        </div>
+                                        <button class="w-full bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-semibold text-lg">
+                                            Proceed to Checkout
+                                        </button>
+                                        <button onclick="toggleCart()" class="w-full border border-purple-700 text-purple-700 py-3 rounded-lg hover:bg-purple-50 transition font-semibold">
+                                            Continue Shopping
+                                        </button>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Newsletter Section -->
+                <div class="bg-purple-700 text-white py-16 mt-12">
+                    <div class="max-w-7xl mx-auto px-4 text-center">
+                        <h3 class="text-3xl font-bold mb-4">Get 10% OFF Your First Order</h3>
+                        <p class="text-xl mb-6">Subscribe to our newsletter for exclusive deals</p>
+                        <div class="max-w-md mx-auto flex gap-2">
+                            <input type="email" placeholder="Enter your email" 
+                                class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none">
+                            <button class="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                                Subscribe
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <footer class="bg-gray-900 text-white py-12">
+                    <div class="max-w-7xl mx-auto px-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                            <div>
+                                <h3 class="text-2xl font-bold mb-4 text-purple-400">👓 SpecVision</h3>
+                                <p class="text-gray-400">Premium eyewear for everyone. Quality frames at affordable prices.</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-4">Shop</h4>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li><a href="#" class="hover:text-white">Eyeglasses</a></li>
+                                    <li><a href="#" class="hover:text-white">Sunglasses</a></li>
+                                    <li><a href="#" class="hover:text-white">Contact Lenses</a></li>
+                                    <li><a href="#" class="hover:text-white">Accessories</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-4">Support</h4>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li><a href="#" class="hover:text-white">Help Center</a></li>
+                                    <li><a href="#" class="hover:text-white">Shipping Info</a></li>
+                                    <li><a href="#" class="hover:text-white">Returns</a></li>
+                                    <li><a href="#" class="hover:text-white">Warranty</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-4">Company</h4>
+                                <ul class="space-y-2 text-gray-400">
+                                    <li><a href="#" class="hover:text-white">About Us</a></li>
+                                    <li><a href="#" class="hover:text-white">Store Locator</a></li>
+                                    <li><a href="#" class="hover:text-white">Blog</a></li>
+                                    <li><a href="#" class="hover:text-white">Contact</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-800 pt-8 text-center text-gray-400">
+                            <p>©️ 2024 SpecVision. All rights reserved. | Made with ❤️ for better vision</p>
+                        </div>
+                    </div>
+                </footer>
+            `;
+
+            document.getElementById('app').innerHTML = html;
+        }
+
+        // Global functions for event handlers
+        window.toggleCart = () => {
+            state.showCart = !state.showCart;
+            render();
+        };
+
+        window.toggleMenu = () => {
+            state.showMenu = !state.showMenu;
+            render();
+        };
+
+        window.toggleFilters = () => {
+            state.showFilters = !state.showFilters;
+            render();
+        };
+
+        window.setCategory = (category) => {
+            state.selectedCategory = category;
+            state.currentView = 'products';
+            render();
+        };
+
+        window.setBrand = (brand) => {
+            state.selectedBrand = brand;
+            render();
+        };
+
+        window.setPriceRange = (range) => {
+            state.priceRange = range;
+            render();
+        };
+
+        window.setSearch = (term) => {
+            state.searchTerm = term;
+            render();
+        };
+
+        window.setView = (view) => {
+            state.currentView = view;
+            if (view === 'home') {
+                state.selectedCategory = 'all';
+            }
+            render();
+        };
+
+        window.addToCart = (product) => {
+            addToCart(product);
+        };
+
+        window.updateQuantity = (id, change) => {
+            updateQuantity(id, change);
+        };
+
+        window.removeFromCart = (id) => {
+            removeFromCart(id);
+        };
+
+        window.toggleWishlist = (id) => {
+            toggleWishlist(id);
+        };
+
+        window.toggleWishlistView = () => {
+            alert('Wishlist feature: ' + state.wishlist.length + ' items saved!');
+        };
+
+        window.scrollToProducts = () => {
+            document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
