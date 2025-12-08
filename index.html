@@ -26,6 +26,7 @@
         }
         .product-card {
             transition: all 0.3s ease;
+            cursor: pointer;
         }
         .product-card:hover {
             transform: translateY(-8px);
@@ -56,6 +57,16 @@
             from { transform: translateX(400px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+        .modal-backdrop {
+            animation: fadeIn 0.2s ease-out;
+        }
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        @keyframes modalSlideIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -63,23 +74,11 @@
     <div id="notifications"></div>
 
     <script>
-        // Storage helper with memory fallback
-        const storage = {
-            get: function(key) {
-                try {
-                    const item = localStorage.getItem(key);
-                    return item ? JSON.parse(item) : null;
-                } catch (e) {
-                    return null;
-                }
-            },
-            set: function(key, value) {
-                try {
-                    localStorage.setItem(key, JSON.stringify(value));
-                } catch (e) {
-                    console.warn('Storage unavailable');
-                }
-            }
+        // Memory storage (no localStorage/sessionStorage)
+        let memoryStorage = {
+            cart: [],
+            wishlist: [],
+            products: []
         };
 
         // Initial products data
@@ -99,7 +98,8 @@
                 material: 'Metal',
                 warranty: '1 Year',
                 features: ['UV Protection', 'Polarized', 'Anti-Glare'],
-                stock: 45
+                stock: 45,
+                description: 'Classic aviator sunglasses with premium metal frame and polarized lenses for superior protection.'
             },
             {
                 id: 2,
@@ -116,7 +116,8 @@
                 material: 'Acetate',
                 warranty: '1 Year',
                 features: ['Blue Light Filter', 'Lightweight', 'Flexible'],
-                stock: 67
+                stock: 67,
+                description: 'Modern wayfarer style with blue light protection, perfect for screen time and everyday wear.'
             },
             {
                 id: 3,
@@ -133,7 +134,8 @@
                 material: 'Metal',
                 warranty: '1 Year',
                 features: ['Vintage Design', 'Lightweight', 'Premium Finish'],
-                stock: 34
+                stock: 34,
+                description: 'Vintage-inspired round frames with a premium metal finish for a timeless look.'
             },
             {
                 id: 4,
@@ -150,7 +152,8 @@
                 material: 'TR90',
                 warranty: '2 Years',
                 features: ['Sports Design', 'Shatterproof', 'Anti-Slip'],
-                stock: 89
+                stock: 89,
+                description: 'High-performance sport sunglasses with shatterproof lenses and secure fit for active lifestyles.'
             },
             {
                 id: 5,
@@ -167,7 +170,8 @@
                 material: 'Acetate',
                 warranty: '1 Year',
                 features: ['Fashion Forward', 'Comfortable', 'Stylish'],
-                stock: 52
+                stock: 52,
+                description: 'Fashion-forward cat eye frames that make a bold statement with comfort and style.'
             },
             {
                 id: 6,
@@ -184,7 +188,8 @@
                 material: 'Titanium',
                 warranty: '2 Years',
                 features: ['Polarized', 'Premium Quality', 'Scratch Resistant'],
-                stock: 23
+                stock: 23,
+                description: 'Premium pilot sunglasses with titanium frame and scratch-resistant polarized lenses.'
             },
             {
                 id: 7,
@@ -201,7 +206,8 @@
                 material: 'Plastic',
                 warranty: '1 Year',
                 features: ['Professional Look', 'Durable', 'Affordable'],
-                stock: 78
+                stock: 78,
+                description: 'Professional rectangle frames that are durable, affordable, and perfect for work.'
             },
             {
                 id: 8,
@@ -218,23 +224,26 @@
                 material: 'Acetate',
                 warranty: '1 Year',
                 features: ['Fashion Statement', 'UV400', 'Large Frame'],
-                stock: 41
+                stock: 41,
+                description: 'Oversized glamorous sunglasses with UV400 protection for maximum style and coverage.'
             }
         ];
 
         // App State
         let state = {
-            products: storage.get('products') || initialProducts,
-            cart: storage.get('cart') || [],
-            wishlist: storage.get('wishlist') || [],
+            products: initialProducts,
+            cart: [],
+            wishlist: [],
             showCart: false,
+            showWishlist: false,
             showMenu: false,
             searchTerm: '',
             selectedCategory: 'all',
             priceRange: 'all',
             selectedBrand: 'all',
             sortBy: 'featured',
-            currentView: 'home'
+            currentView: 'home',
+            previewProduct: null
         };
 
         const brands = ['all', 'RayVision', 'StyleFrame', 'RetroSpec', 'ActiveVision', 'GlamourEyes', 'ProfessionalSpec', 'FashionVue'];
@@ -254,10 +263,6 @@
         }
 
         // Helper functions
-        function saveToStorage(key, data) {
-            storage.set(key, data);
-        }
-
         function addToCart(product) {
             if (product.stock < 1) {
                 showNotification('Product out of stock', 'error');
@@ -270,51 +275,52 @@
                     showNotification('Maximum stock reached', 'error');
                     return;
                 }
-                state.cart = state.cart.map(item =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-                );
+                existing.quantity += 1;
                 showNotification('Quantity updated in cart!');
             } else {
-                state.cart = [...state.cart, { ...product, quantity: 1 }];
+                state.cart.push({ ...product, quantity: 1 });
                 showNotification('Added to cart!');
             }
-            saveToStorage('cart', state.cart);
             render();
         }
 
         function updateQuantity(id, change) {
+            const cartItem = state.cart.find(item => item.id === id);
             const product = state.products.find(p => p.id === id);
-            state.cart = state.cart.map(item => {
-                if (item.id === id) {
-                    const newQuantity = item.quantity + change;
-                    if (newQuantity > product.stock) {
-                        showNotification('Maximum stock reached', 'error');
-                        return item;
-                    }
-                    return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
-                }
-                return item;
-            }).filter(Boolean);
-            saveToStorage('cart', state.cart);
+            
+            if (!cartItem) return;
+            
+            const newQuantity = cartItem.quantity + change;
+            
+            if (newQuantity <= 0) {
+                removeFromCart(id);
+                return;
+            }
+            
+            if (newQuantity > product.stock) {
+                showNotification('Maximum stock reached', 'error');
+                return;
+            }
+            
+            cartItem.quantity = newQuantity;
             render();
         }
 
         function removeFromCart(id) {
             state.cart = state.cart.filter(item => item.id !== id);
-            saveToStorage('cart', state.cart);
             showNotification('Removed from cart');
             render();
         }
 
         function toggleWishlist(productId) {
-            if (state.wishlist.includes(productId)) {
-                state.wishlist = state.wishlist.filter(id => id !== productId);
+            const index = state.wishlist.indexOf(productId);
+            if (index > -1) {
+                state.wishlist.splice(index, 1);
                 showNotification('Removed from wishlist');
             } else {
-                state.wishlist = [...state.wishlist, productId];
+                state.wishlist.push(productId);
                 showNotification('Added to wishlist!');
             }
-            saveToStorage('wishlist', state.wishlist);
             render();
         }
 
@@ -375,7 +381,8 @@
             trash: '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
             truck: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>',
             shield: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
-            award: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>'
+            award: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>',
+            eye: '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>'
         };
 
         // Render function
@@ -383,6 +390,7 @@
             const filteredProducts = getFilteredProducts();
             const totalPrice = getTotalPrice();
             const totalItems = getTotalItems();
+            const wishlistProducts = state.products.filter(p => state.wishlist.includes(p.id));
 
             const html = `
                 <!-- Header -->
@@ -393,20 +401,20 @@
                     <div class="max-w-7xl mx-auto px-4 py-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-4">
-                                <button onclick="toggleMenu()" class="lg:hidden p-2 hover:bg-gray-100 rounded">
+                                <button onclick="window.toggleMenu()" class="lg:hidden p-2 hover:bg-gray-100 rounded">
                                     ${state.showMenu ? icons.x : icons.menu}
                                 </button>
                                 <h1 class="text-2xl md:text-3xl font-bold text-purple-700">👓 SpecVision</h1>
                             </div>
 
                             <nav class="hidden lg:flex space-x-8">
-                                <button onclick="setView('home')" class="${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                <button onclick="window.setView('home')" class="${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
                                     Home
                                 </button>
-                                <button onclick="setCategory('eyeglasses')" class="${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                <button onclick="window.setCategory('eyeglasses')" class="${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
                                     Eyeglasses
                                 </button>
-                                <button onclick="setCategory('sunglasses')" class="${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
+                                <button onclick="window.setCategory('sunglasses')" class="${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600 hover:text-purple-700'}">
                                     Sunglasses
                                 </button>
                                 <button class="text-gray-600 hover:text-purple-700">Contact Lenses</button>
@@ -415,7 +423,7 @@
                             <div class="flex items-center space-x-2 md:space-x-4">
                                 <div class="relative hidden md:block">
                                     <input type="text" placeholder="Search frames..." value="${state.searchTerm}" 
-                                        oninput="setSearch(event.target.value)"
+                                        oninput="window.setSearch(event.target.value)"
                                         class="pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-600 w-64">
                                     <div class="absolute left-3 top-2.5 text-gray-400">${icons.search}</div>
                                 </div>
@@ -424,7 +432,7 @@
                                     ${icons.user}
                                 </button>
 
-                                <button onclick="toggleWishlistView()" class="p-2 hover:bg-gray-100 rounded-full relative">
+                                <button onclick="window.toggleWishlistView()" class="p-2 hover:bg-gray-100 rounded-full relative">
                                     ${state.wishlist.length > 0 ? icons.heartFilled.replace('currentColor', '#ef4444') : icons.heart}
                                     ${state.wishlist.length > 0 ? `
                                         <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -433,7 +441,7 @@
                                     ` : ''}
                                 </button>
                                 
-                                <button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-full relative">
+                                <button onclick="window.toggleCart()" class="p-2 hover:bg-gray-100 rounded-full relative">
                                     ${icons.cart}
                                     ${state.cart.length > 0 ? `
                                         <span class="absolute -top-1 -right-1 bg-purple-700 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -448,7 +456,7 @@
                         <div class="mt-4 md:hidden">
                             <div class="relative">
                                 <input type="text" placeholder="Search frames..." value="${state.searchTerm}"
-                                    oninput="setSearch(event.target.value)"
+                                    oninput="window.setSearch(event.target.value)"
                                     class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-600">
                                 <div class="absolute left-3 top-2.5 text-gray-400">${icons.search}</div>
                             </div>
@@ -459,9 +467,9 @@
                     ${state.showMenu ? `
                         <div class="lg:hidden bg-white border-t">
                             <nav class="flex flex-col p-4 space-y-2">
-                                <button onclick="setView('home'); toggleMenu()" class="text-left py-2 ${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Home</button>
-                                <button onclick="setCategory('eyeglasses'); toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Eyeglasses</button>
-                                <button onclick="setCategory('sunglasses'); toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Sunglasses</button>
+                                <button onclick="window.setView('home'); window.toggleMenu()" class="text-left py-2 ${state.currentView === 'home' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Home</button>
+                                <button onclick="window.setCategory('eyeglasses'); window.toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'eyeglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Eyeglasses</button>
+                                <button onclick="window.setCategory('sunglasses'); window.toggleMenu()" class="text-left py-2 ${state.selectedCategory === 'sunglasses' ? 'text-purple-700 font-semibold' : 'text-gray-600'}">Sunglasses</button>
                                 <button class="text-left py-2 text-gray-600">Contact Lenses</button>
                             </nav>
                         </div>
@@ -476,7 +484,7 @@
                                 <h2 class="text-4xl md:text-6xl font-bold mb-4">See Life Clearly</h2>
                                 <p class="text-xl md:text-2xl mb-6">Premium eyewear starting at $69.99</p>
                                 <p class="text-lg mb-8">Free home trial • 1 Year Warranty • Free shipping</p>
-                                <button onclick="scrollToProducts()" class="bg-white text-purple-700 px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-100 transition">
+                                <button onclick="window.scrollToProducts()" class="bg-white text-purple-700 px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-100 transition">
                                     Shop Now
                                 </button>
                             </div>
@@ -523,18 +531,18 @@
                     <!-- Filter Bar -->
                     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
                         <div class="flex flex-wrap items-center gap-4">
-                            <button onclick="toggleFilters()" class="flex items-center space-x-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                            <button onclick="window.toggleFilters()" class="flex items-center space-x-2 px-4 py-2 border rounded-lg hover:bg-gray-50">
                                 <span>${icons.filter}</span>
                                 <span>Filters</span>
                             </button>
 
-                            <select onchange="setCategory(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                            <select onchange="window.setCategory(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
                                 <option value="all" ${state.selectedCategory === 'all' ? 'selected' : ''}>All Types</option>
                                 <option value="eyeglasses" ${state.selectedCategory === 'eyeglasses' ? 'selected' : ''}>Eyeglasses</option>
                                 <option value="sunglasses" ${state.selectedCategory === 'sunglasses' ? 'selected' : ''}>Sunglasses</option>
                             </select>
 
-                            <select onchange="setBrand(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                            <select onchange="window.setBrand(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
                                 ${brands.map(brand => `
                                     <option value="${brand}" ${state.selectedBrand === brand ? 'selected' : ''}>
                                         ${brand === 'all' ? 'All Brands' : brand}
@@ -542,14 +550,14 @@
                                 `).join('')}
                             </select>
 
-                            <select onchange="setPriceRange(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                            <select onchange="window.setPriceRange(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
                                 <option value="all" ${state.priceRange === 'all' ? 'selected' : ''}>All Prices</option>
                                 <option value="50-100" ${state.priceRange === '50-100' ? 'selected' : ''}>$50 - $100</option>
                                 <option value="100-150" ${state.priceRange === '100-150' ? 'selected' : ''}>$100 - $150</option>
                                 <option value="over150" ${state.priceRange === 'over150' ? 'selected' : ''}>Over $150</option>
                             </select>
 
-                            <select onchange="setSortBy(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
+                            <select onchange="window.setSortBy(event.target.value)" class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600">
                                 <option value="featured" ${state.sortBy === 'featured' ? 'selected' : ''}>Featured</option>
                                 <option value="price-low" ${state.sortBy === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
                                 <option value="price-high" ${state.sortBy === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
@@ -567,19 +575,22 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         ${filteredProducts.map(product => `
                             <div class="product-card bg-white rounded-lg shadow-md overflow-hidden">
-                                <div class="relative">
+                                <div class="relative" onclick="window.showPreview(${product.id})">
                                     <img src="${product.image}" alt="${product.name}" class="w-full h-56 object-cover">
                                     ${product.originalPrice > product.price ? `
                                         <div class="badge absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                                             ${getDiscount(product.originalPrice, product.price)}% OFF
                                         </div>
                                     ` : ''}
-                                    <button onclick="event.stopPropagation(); toggleWishlist(${product.id})" 
+                                    <button onclick="event.stopPropagation(); window.toggleWishlist(${product.id})" 
                                         class="absolute top-2 right-2 p-2 bg-white rounded-full hover:bg-gray-100 shadow-md transition">
                                         <div class="${state.wishlist.includes(product.id) ? 'text-red-500' : 'text-gray-600'}">
                                             ${state.wishlist.includes(product.id) ? icons.heartFilled : icons.heart}
                                         </div>
                                     </button>
+                                    <div class="absolute bottom-2 right-2 p-2 bg-white rounded-full hover:bg-purple-100 shadow-md transition">
+                                        <div class="text-purple-700">${icons.eye}</div>
+                                    </div>
                                     ${product.stock < 10 && product.stock > 0 ? `
                                         <div class="absolute bottom-2 left-2 bg-orange-500 text-white px-2 py-1 rounded text-xs font-semibold">
                                             Only ${product.stock} left!
@@ -615,14 +626,14 @@
                                     
                                     <div class="flex items-center justify-between mb-3">
                                         <div>
-                                            <span class="text-2xl font-bold text-purple-700">${product.price.toFixed(2)}</span>
+                                            <span class="text-2xl font-bold text-purple-700">$${product.price.toFixed(2)}</span>
                                             ${product.originalPrice > product.price ? `
-                                                <span class="text-sm text-gray-500 line-through ml-2">${product.originalPrice.toFixed(2)}</span>
+                                                <span class="text-sm text-gray-500 line-through ml-2">$${product.originalPrice.toFixed(2)}</span>
                                             ` : ''}
                                         </div>
                                     </div>
                                     
-                                    <button onclick="handleAddToCart(${product.id})" 
+                                    <button onclick="event.stopPropagation(); window.handleAddToCart(${product.id})" 
                                         ${product.stock === 0 ? 'disabled' : ''}
                                         class="w-full ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-700 hover:bg-purple-800'} text-white py-2 rounded-lg transition font-semibold">
                                         ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
@@ -641,21 +652,136 @@
                             <div class="text-6xl mb-4">🔍</div>
                             <h3 class="text-2xl font-bold text-gray-700 mb-2">No Products Found</h3>
                             <p class="text-gray-500 mb-6">Try adjusting your filters or search terms</p>
-                            <button onclick="resetFilters()" class="bg-purple-700 text-white px-6 py-3 rounded-lg hover:bg-purple-800 transition font-semibold">
+                            <button onclick="window.resetFilters()" class="bg-purple-700 text-white px-6 py-3 rounded-lg hover:bg-purple-800 transition font-semibold">
                                 Reset Filters
                             </button>
                         </div>
                     ` : ''}
                 </div>
 
+                <!-- Product Preview Modal -->
+                ${state.previewProduct ? `
+                    <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="window.closePreview()">
+                        <div class="modal-content bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+                            <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+                                <h2 class="text-2xl font-bold">${state.previewProduct.name}</h2>
+                                <button onclick="window.closePreview()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                                    ${icons.x}
+                                </button>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div class="grid md:grid-cols-2 gap-8">
+                                    <div>
+                                        <div class="relative">
+                                            <img src="${state.previewProduct.image}" alt="${state.previewProduct.name}" class="w-full rounded-lg">
+                                            ${state.previewProduct.originalPrice > state.previewProduct.price ? `
+                                                <div class="badge absolute top-4 left-4 bg-red-500 text-white px-3 py-2 rounded-full text-sm font-bold">
+                                                    ${getDiscount(state.previewProduct.originalPrice, state.previewProduct.price)}% OFF
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                        
+                                        <div class="mt-4 grid grid-cols-4 gap-2">
+                                            ${[1,2,3,4].map(() => `
+                                                <img src="${state.previewProduct.image}" alt="View" class="w-full h-20 object-cover rounded border-2 border-gray-200 hover:border-purple-500 cursor-pointer">
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="mb-4">
+                                            <span class="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold mb-2">
+                                                ${state.previewProduct.brand}
+                                            </span>
+                                            <div class="flex items-center text-yellow-500 mb-2">
+                                                ${icons.star}
+                                                <span class="text-sm text-gray-600 ml-1">${state.previewProduct.rating} (${state.previewProduct.reviews} reviews)</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <div class="flex items-center space-x-3 mb-2">
+                                                <span class="text-3xl font-bold text-purple-700">$${state.previewProduct.price.toFixed(2)}</span>
+                                                ${state.previewProduct.originalPrice > state.previewProduct.price ? `
+                                                    <span class="text-xl text-gray-500 line-through">$${state.previewProduct.originalPrice.toFixed(2)}</span>
+                                                ` : ''}
+                                            </div>
+                                            <p class="text-sm text-green-600 font-semibold">${state.previewProduct.stock} in stock</p>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <h4 class="font-semibold mb-2">Description</h4>
+                                            <p class="text-gray-600">${state.previewProduct.description}</p>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <h4 class="font-semibold mb-2">Specifications</h4>
+                                            <div class="space-y-2 text-sm">
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Type:</span>
+                                                    <span class="font-medium">${state.previewProduct.type}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Material:</span>
+                                                    <span class="font-medium">${state.previewProduct.material}</span>
+                                                </div>
+                                                <div class="flex justify-between">
+                                                    <span class="text-gray-600">Warranty:</span>
+                                                    <span class="font-medium">${state.previewProduct.warranty}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <h4 class="font-semibold mb-2">Available Colors</h4>
+                                            <div class="flex items-center space-x-3">
+                                                ${state.previewProduct.colors.map(color => `
+                                                    <div class="w-8 h-8 rounded-full border-2 border-gray-300 hover:border-purple-500 cursor-pointer" 
+                                                        style="background: ${color.toLowerCase()};" 
+                                                        title="${color}">
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <h4 class="font-semibold mb-2">Features</h4>
+                                            <div class="flex flex-wrap gap-2">
+                                                ${state.previewProduct.features.map(feature => `
+                                                    <span class="bg-gray-100 px-3 py-1 rounded-full text-sm">${feature}</span>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex gap-3">
+                                            <button onclick="window.handleAddToCart(${state.previewProduct.id}); window.closePreview()" 
+                                                ${state.previewProduct.stock === 0 ? 'disabled' : ''}
+                                                class="flex-1 ${state.previewProduct.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-700 hover:bg-purple-800'} text-white py-3 rounded-lg transition font-semibold">
+                                                ${state.previewProduct.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                                            </button>
+                                            <button onclick="window.toggleWishlist(${state.previewProduct.id})" 
+                                                class="p-3 border-2 ${state.wishlist.includes(state.previewProduct.id) ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-purple-500'} rounded-lg transition">
+                                                <div class="${state.wishlist.includes(state.previewProduct.id) ? 'text-red-500' : 'text-gray-600'}">
+                                                    ${state.wishlist.includes(state.previewProduct.id) ? icons.heartFilled : icons.heart}
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
                 <!-- Cart Sidebar -->
                 ${state.showCart ? `
-                    <div class="fixed inset-0 bg-black bg-opacity-50 z-50" onclick="toggleCart()">
+                    <div class="fixed inset-0 bg-black bg-opacity-50 z-50" onclick="window.toggleCart()">
                         <div class="slide-in-right absolute right-0 top-0 h-full w-full md:w-96 bg-white shadow-xl overflow-y-auto" onclick="event.stopPropagation()">
                             <div class="p-6">
                                 <div class="flex items-center justify-between mb-6">
                                     <h2 class="text-2xl font-bold">Shopping Cart</h2>
-                                    <button onclick="toggleCart()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                                    <button onclick="window.toggleCart()" class="p-2 hover:bg-gray-100 rounded-full transition">
                                         ${icons.x}
                                     </button>
                                 </div>
@@ -664,7 +790,7 @@
                                     <div class="text-center py-12">
                                         <div class="text-gray-400 mb-4 flex justify-center">${icons.cart}</div>
                                         <p class="text-gray-500 mb-4">Your cart is empty</p>
-                                        <button onclick="toggleCart()" class="text-purple-700 font-semibold hover:text-purple-800 transition">
+                                        <button onclick="window.toggleCart()" class="text-purple-700 font-semibold hover:text-purple-800 transition">
                                             Continue Shopping →
                                         </button>
                                     </div>
@@ -676,18 +802,18 @@
                                                 <div class="flex-1">
                                                     <h4 class="font-semibold text-sm">${item.name}</h4>
                                                     <p class="text-xs text-gray-600">${item.brand}</p>
-                                                    <p class="text-purple-700 font-bold mt-1">${item.price.toFixed(2)}</p>
+                                                    <p class="text-purple-700 font-bold mt-1">$${item.price.toFixed(2)}</p>
                                                     <div class="flex items-center space-x-2 mt-2">
-                                                        <button onclick="event.stopPropagation(); updateQuantity(${item.id}, -1)" 
+                                                        <button onclick="event.stopPropagation(); window.updateQuantity(${item.id}, -1)" 
                                                             class="p-1 bg-gray-200 rounded hover:bg-gray-300 transition">
                                                             ${icons.minus}
                                                         </button>
                                                         <span class="font-semibold w-8 text-center">${item.quantity}</span>
-                                                        <button onclick="event.stopPropagation(); updateQuantity(${item.id}, 1)" 
+                                                        <button onclick="event.stopPropagation(); window.updateQuantity(${item.id}, 1)" 
                                                             class="p-1 bg-gray-200 rounded hover:bg-gray-300 transition">
                                                             ${icons.plus}
                                                         </button>
-                                                        <button onclick="event.stopPropagation(); removeFromCart(${item.id})" 
+                                                        <button onclick="event.stopPropagation(); window.removeFromCart(${item.id})" 
                                                             class="ml-auto p-1 text-red-500 hover:bg-red-50 rounded transition">
                                                             ${icons.trash}
                                                         </button>
@@ -700,7 +826,7 @@
                                     <div class="border-t pt-4 space-y-3">
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-600">Subtotal (${totalItems} item${totalItems !== 1 ? 's' : ''}):</span>
-                                            <span class="font-semibold">${totalPrice.toFixed(2)}</span>
+                                            <span class="font-semibold">$${totalPrice.toFixed(2)}</span>
                                         </div>
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-600">Shipping:</span>
@@ -708,14 +834,69 @@
                                         </div>
                                         <div class="flex justify-between items-center border-t pt-3">
                                             <span class="text-lg font-semibold">Total:</span>
-                                            <span class="text-2xl font-bold text-purple-700">${totalPrice.toFixed(2)}</span>
+                                            <span class="text-2xl font-bold text-purple-700">$${totalPrice.toFixed(2)}</span>
                                         </div>
-                                        <button onclick="handleCheckout()" class="w-full bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-semibold text-lg">
+                                        <button onclick="window.handleCheckout()" class="w-full bg-purple-700 text-white py-3 rounded-lg hover:bg-purple-800 transition font-semibold text-lg">
                                             Proceed to Checkout
                                         </button>
-                                        <button onclick="toggleCart()" class="w-full border border-purple-700 text-purple-700 py-3 rounded-lg hover:bg-purple-50 transition font-semibold">
+                                        <button onclick="window.toggleCart()" class="w-full border border-purple-700 text-purple-700 py-3 rounded-lg hover:bg-purple-50 transition font-semibold">
                                             Continue Shopping
                                         </button>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Wishlist Sidebar -->
+                ${state.showWishlist ? `
+                    <div class="fixed inset-0 bg-black bg-opacity-50 z-50" onclick="window.toggleWishlistView()">
+                        <div class="slide-in-right absolute right-0 top-0 h-full w-full md:w-96 bg-white shadow-xl overflow-y-auto" onclick="event.stopPropagation()">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h2 class="text-2xl font-bold">My Wishlist</h2>
+                                    <button onclick="window.toggleWishlistView()" class="p-2 hover:bg-gray-100 rounded-full transition">
+                                        ${icons.x}
+                                    </button>
+                                </div>
+
+                                ${wishlistProducts.length === 0 ? `
+                                    <div class="text-center py-12">
+                                        <div class="text-gray-400 mb-4 flex justify-center">${icons.heart}</div>
+                                        <p class="text-gray-500 mb-4">Your wishlist is empty</p>
+                                        <button onclick="window.toggleWishlistView()" class="text-purple-700 font-semibold hover:text-purple-800 transition">
+                                            Start Shopping →
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <div class="space-y-4">
+                                        ${wishlistProducts.map(product => `
+                                            <div class="flex space-x-4 border-b pb-4">
+                                                <img src="${product.image}" alt="${product.name}" class="w-24 h-24 object-cover rounded cursor-pointer" onclick="window.showPreview(${product.id}); window.toggleWishlistView()">
+                                                <div class="flex-1">
+                                                    <h4 class="font-semibold text-sm">${product.name}</h4>
+                                                    <p class="text-xs text-gray-600">${product.brand}</p>
+                                                    <div class="flex items-center space-x-2 mt-1">
+                                                        <span class="text-purple-700 font-bold">$${product.price.toFixed(2)}</span>
+                                                        ${product.originalPrice > product.price ? `
+                                                            <span class="text-xs text-gray-500 line-through">$${product.originalPrice.toFixed(2)}</span>
+                                                        ` : ''}
+                                                    </div>
+                                                    <div class="flex items-center space-x-2 mt-3">
+                                                        <button onclick="event.stopPropagation(); window.handleAddToCart(${product.id})" 
+                                                            ${product.stock === 0 ? 'disabled' : ''}
+                                                            class="flex-1 ${product.stock === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-700 hover:bg-purple-800'} text-white py-1 px-3 rounded text-xs font-semibold transition">
+                                                            ${product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+                                                        </button>
+                                                        <button onclick="event.stopPropagation(); window.toggleWishlist(${product.id})" 
+                                                            class="p-1 text-red-500 hover:bg-red-50 rounded transition">
+                                                            ${icons.trash}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
                                     </div>
                                 `}
                             </div>
@@ -731,7 +912,7 @@
                         <div class="max-w-md mx-auto flex gap-2">
                             <input type="email" placeholder="Enter your email" 
                                 class="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-400">
-                            <button onclick="handleNewsletterSubscribe()" class="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                            <button onclick="window.handleNewsletterSubscribe()" class="bg-white text-purple-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
                                 Subscribe
                             </button>
                         </div>
@@ -787,6 +968,7 @@
         // Global event handler functions
         window.toggleCart = () => {
             state.showCart = !state.showCart;
+            state.showWishlist = false;
             render();
         };
 
@@ -853,11 +1035,22 @@
         };
 
         window.toggleWishlistView = () => {
-            if (state.wishlist.length === 0) {
-                showNotification('Your wishlist is empty', 'info');
-            } else {
-                showNotification(`You have ${state.wishlist.length} item${state.wishlist.length !== 1 ? 's' : ''} in your wishlist!`, 'info');
+            state.showWishlist = !state.showWishlist;
+            state.showCart = false;
+            render();
+        };
+
+        window.showPreview = (productId) => {
+            const product = state.products.find(p => p.id === productId);
+            if (product) {
+                state.previewProduct = product;
+                render();
             }
+        };
+
+        window.closePreview = () => {
+            state.previewProduct = null;
+            render();
         };
 
         window.scrollToProducts = () => {
